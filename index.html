@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Active Learning Strategy Finder — Jönköping University</title>
+<link href="https://fonts.googleapis.com/css2?family=Georgia:ital@0;1&family=Calibri:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --lila: #961B81;
+    --lila-light: #c055ab;
+    --lila-dim: #3a0a32;
+    --turkos: #55AAA7;
+    --turkos-light: #7fcfcc;
+    --gul: #FFB500;
+    --bg: #1a1a1a;
+    --bg2: #222222;
+    --bg3: #2c2c2c;
+    --border: rgba(255,255,255,0.1);
+    --border-hover: rgba(255,255,255,0.2);
+    --text: #f0f0f0;
+    --text-muted: #aaaaaa;
+    --text-dim: #777777;
+    --radius: 6px;
+    --radius-lg: 10px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 15px; }
+  body {
+    font-family: 'Calibri', 'Trebuchet MS', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  /* Header */
+  .site-header {
+    background: #111;
+    border-bottom: 2px solid var(--lila);
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .ju-wordmark {
+    font-family: Georgia, serif;
+    font-size: 1.15rem;
+    font-weight: normal;
+    color: var(--text);
+    letter-spacing: 0.02em;
+  }
+  .ju-wordmark span { color: var(--lila); }
+  .header-title {
+    font-family: Georgia, serif;
+    font-size: 1rem;
+    font-weight: normal;
+    color: var(--text-muted);
+    border-left: 1px solid var(--border-hover);
+    padding-left: 1rem;
+    margin-left: 0.25rem;
+  }
+
+  /* Main layout */
+  .main { max-width: 1400px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+
+  /* Hero strip */
+  .hero {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero h1 {
+    font-family: Georgia, serif;
+    font-size: 1.6rem;
+    font-weight: normal;
+    color: var(--text);
+    margin-bottom: 0.35rem;
+  }
+  .hero h1 em { color: var(--lila); font-style: normal; }
+  .hero p { font-size: 0.875rem; color: var(--text-muted); max-width: 720px; }
+
+  /* TPACK strip */
+  .tpack-section { margin-bottom: 1.25rem; }
+  .section-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 0.5rem;
+  }
+  .tpack-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .tpack-btn {
+    font-family: 'Calibri', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 99px;
+    border: 1px solid var(--border-hover);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+  }
+  .tpack-btn:hover { border-color: var(--turkos); color: var(--turkos); }
+  .tpack-btn.active { background: var(--lila); border-color: var(--lila); color: #fff; }
+  .tpack-legend {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    margin-top: 0.4rem;
+    min-height: 1.2em;
+    font-style: italic;
+  }
+
+  /* Filter grid */
+  .filter-area { margin-bottom: 1.25rem; }
+  .filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .filter-group { display: flex; flex-direction: column; gap: 4px; }
+  .filter-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  select, input[type=text] {
+    font-family: 'Calibri', sans-serif;
+    font-size: 0.82rem;
+    padding: 6px 8px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    width: 100%;
+    transition: border-color 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23777'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px; }
+  select:focus, input:focus { outline: none; border-color: var(--lila); }
+  select:hover, input:hover { border-color: var(--border-hover); }
+
+  .search-row { display: flex; gap: 10px; align-items: flex-end; }
+  .search-wrap { flex: 1; }
+  .btn-reset {
+    font-family: 'Calibri', sans-serif;
+    font-size: 0.82rem;
+    padding: 6px 16px;
+    background: transparent;
+    border: 1px solid var(--border-hover);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .btn-reset:hover { border-color: var(--lila); color: var(--lila); }
+
+  /* Results meta */
+  .results-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0.75rem;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+  .count-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 10px;
+    border-radius: 99px;
+    background: var(--lila);
+    color: #fff;
+  }
+
+  /* Table */
+  .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  thead { position: sticky; top: 0; z-index: 2; }
+  th {
+    background: var(--bg2);
+    color: var(--text-dim);
+    font-size: 0.67rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+  }
+  th:hover { color: var(--turkos); }
+  th.sorted { color: var(--turkos); }
+  .sort-arrow { margin-left: 3px; font-size: 0.65rem; opacity: 0.5; }
+  th.sorted .sort-arrow { opacity: 1; }
+
+  td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.03); }
+
+  .name-cell { min-width: 165px; }
+  .strategy-name { font-family: Georgia, serif; font-size: 0.85rem; color: var(--text); margin-bottom: 3px; }
+  .strategy-desc { font-size: 0.75rem; color: var(--text-muted); line-height: 1.45; }
+
+  /* Tags */
+  .tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 99px;
+    margin: 1px 1px 1px 0;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+  }
+  .tag-room    { background: rgba(85,170,167,0.15); color: var(--turkos-light); border: 1px solid rgba(85,170,167,0.25); }
+  .tag-format  { background: rgba(150,27,129,0.15); color: var(--lila-light);   border: 1px solid rgba(150,27,129,0.25); }
+  .tag-tpack   { background: rgba(255,181,0,0.12);  color: var(--gul);          border: 1px solid rgba(255,181,0,0.25); }
+  .tag-field   { background: rgba(255,255,255,0.06); color: var(--text-muted);  border: 1px solid var(--border); }
+  .tag-ai      { background: rgba(85,170,167,0.1);  color: var(--turkos);       border: 1px solid rgba(85,170,167,0.2); font-size: 0.7rem; white-space: normal; line-height: 1.4; }
+  .tag-time    { background: rgba(255,181,0,0.1);   color: #d49a00;             border: 1px solid rgba(255,181,0,0.2); }
+
+  .ref-link {
+    color: var(--lila-light);
+    text-decoration: none;
+    font-size: 0.72rem;
+    line-height: 1.45;
+    word-break: break-word;
+  }
+  .ref-link:hover { color: var(--turkos); text-decoration: underline; }
+
+  .muted-cell { font-size: 0.75rem; color: var(--text-muted); }
+
+  .no-results {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    font-style: italic;
+  }
+
+  /* Footer */
+  .site-footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.72rem;
+    color: var(--text-dim);
+  }
+
+  @media (max-width: 640px) {
+    .hero h1 { font-size: 1.2rem; }
+    .filter-grid { grid-template-columns: 1fr 1fr; }
+    .site-header { flex-wrap: wrap; }
+    .header-title { border-left: none; padding-left: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="ju-wordmark">Jönköping <span>University</span></div>
+  <div class="header-title">Educate — Pedagogical Development</div>
+</header>
+
+<main class="main">
+
+  <div class="hero">
+    <h1>Active Learning <em>Strategy Finder</em></h1>
+    <p>100 evidence-based strategies for higher education. Filter by room, format, group size, TPACK dimension, and more to find the strategies that work in your context.</p>
+  </div>
+
+  <!-- TPACK filter -->
+  <div class="tpack-section">
+    <div class="section-label">Filter by TPACK knowledge domain</div>
+    <div class="tpack-row" id="tpack-row"></div>
+    <div class="tpack-legend" id="tpack-legend">Hover a button to see the knowledge domain definition.</div>
+  </div>
+
+  <!-- Main filters -->
+  <div class="filter-area">
+    <div class="search-row" style="margin-bottom:10px">
+      <div class="search-wrap filter-group">
+        <label class="filter-label">Search strategy or keyword</label>
+        <input type="text" id="search" placeholder="e.g. debate, flipped, STEM...">
+      </div>
+      <button class="btn-reset" onclick="resetFilters()">Reset all filters</button>
+    </div>
+    <div class="filter-grid" id="filter-grid"></div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-meta">
+    <span class="count-badge" id="count-badge">100</span>
+    <span id="results-label">of 100 strategies shown</span>
+  </div>
+
+  <div class="table-wrap">
+    <table id="main-table">
+      <thead id="table-head"></thead>
+      <tbody id="table-body"></tbody>
+    </table>
+  </div>
+
+  <footer class="site-footer">
+    Built for Jönköping University — Educate initiative. All references link to primary peer-reviewed sources or canonical scholarly works. TPACK framework: Mishra &amp; Koehler (2006).
+  </footer>
+
+</main>
+
+<script>
+const strategies = [
+{"id":1,"name":"Think-Pair-Share","desc":"Students think individually, discuss with a partner, then share with the class.","room":["Any"],"time":"5–15 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"None","tech":"None","ai":"Reflection prompts","tpack":["PK","PCK"],"field":["Any"],"ref":"Lyman (1981)","refUrl":"https://doi.org/10.1177/105456468100600302"},
+{"id":2,"name":"Peer Instruction","desc":"Students answer conceptual questions, discuss with peers, then revote using clickers or cards.","room":["Lecture hall","ALC"],"time":"10–20 min","groupSize":"Any","format":["On campus","Blended"],"materials":"Response cards or clickers","tech":"Polling tool (optional)","ai":"Question generation","tpack":["TK","TCK","TPACK"],"field":["STEM","Medicine"],"ref":"Mazur (1997)","refUrl":"https://doi.org/10.1119/1.18850"},
+{"id":3,"name":"Flipped Classroom","desc":"Pre-class material replaces lecture; class time used for active work.","room":["Any"],"time":"Full session","groupSize":"Any","format":["Blended","Digital"],"materials":"Pre-recorded lecture","tech":"LMS, video platform","ai":"Content creation, quizzes","tpack":["TK","TCK","TPACK"],"field":["Any"],"ref":"Bishop & Verleger (2013)","refUrl":"https://doi.org/10.18260/1-2--22585"},
+{"id":4,"name":"Problem-Based Learning (PBL)","desc":"Students work on complex real-world problems over several sessions.","room":["Seminar","ALC"],"time":"Multi-session","groupSize":"5–20","format":["On campus","Blended"],"materials":"Case materials","tech":"LMS","ai":"Problem framing, research","tpack":["PK","PCK","TPK"],"field":["Medicine","Law","Engineering"],"ref":"Hmelo-Silver (2004)","refUrl":"https://doi.org/10.1023/B:EDPR.0000034022.16470.f3"},
+{"id":5,"name":"Case-Based Learning","desc":"Analysis of rich real or fictional cases to develop professional judgement.","room":["Seminar","ALC","Lecture hall"],"time":"45–90 min","groupSize":"5–40","format":["On campus","Blended","Digital"],"materials":"Written case","tech":"LMS (optional)","ai":"Case generation, analysis","tpack":["PK","PCK"],"field":["Business","Law","Medicine","Social work"],"ref":"Herreid (1994)","refUrl":"https://doi.org/10.2505/jcst.1994.024.03.1"},
+{"id":6,"name":"Jigsaw","desc":"Students become experts on one part of content, then teach peers in mixed groups.","room":["Seminar","ALC"],"time":"45–90 min","groupSize":"10–40","format":["On campus"],"materials":"Different reading sets","tech":"None","ai":"Content summaries","tpack":["PK","PCK"],"field":["Any"],"ref":"Aronson (1978)","refUrl":"https://psycnet.apa.org/record/1979-08602-000"},
+{"id":7,"name":"Team-Based Learning (TBL)","desc":"Structured team work with individual and group readiness assurance tests.","room":["Lecture hall","ALC"],"time":"Full session","groupSize":"20–200","format":["On campus","Blended"],"materials":"IRAT/GRAT cards","tech":"Polling tool","ai":"Application case design","tpack":["PK","PCK","TCK"],"field":["Medicine","Business","Any"],"ref":"Michaelsen et al. (2004)","refUrl":"https://doi.org/10.22329/celt.v1i0.3068"},
+{"id":8,"name":"Gallery Walk","desc":"Students move around the room to examine and respond to posted work or prompts.","room":["Seminar","ALC","Lab"],"time":"20–45 min","groupSize":"10–40","format":["On campus"],"materials":"Posters, sticky notes, markers","tech":"None","ai":"Prompt generation","tpack":["PK","PCK"],"field":["Any"],"ref":"Brame (2016)","refUrl":"https://doi.org/10.1187/cbe.16-03-0125"},
+{"id":9,"name":"Muddiest Point","desc":"Students write the most confusing point at the end of a session.","room":["Any"],"time":"2–5 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"Paper or online form","tech":"LMS or forms","ai":"Response categorisation","tpack":["PK"],"field":["Any"],"ref":"Angelo & Cross (1993)","refUrl":"https://doi.org/10.1002/tl.37219935504"},
+{"id":10,"name":"One-Minute Paper","desc":"Short written reflection at the end of class on key learning.","room":["Any"],"time":"2–5 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"Paper or form","tech":"LMS (optional)","ai":"Feedback synthesis","tpack":["PK"],"field":["Any"],"ref":"Angelo & Cross (1993)","refUrl":"https://doi.org/10.1002/tl.37219935504"},
+{"id":11,"name":"Minute Paper with Peer Review","desc":"One-minute papers exchanged and reviewed by peers.","room":["Any"],"time":"5–10 min","groupSize":"Any","format":["On campus","Blended"],"materials":"Paper or form","tech":"LMS","ai":"Feedback framing","tpack":["PK","PCK"],"field":["Any"],"ref":"Bean (2011)","refUrl":"https://www.wiley.com/en-us/Engaging+Ideas-p-9780470532904"},
+{"id":12,"name":"Socratic Seminar","desc":"Structured discussion guided by deep questioning of a shared text.","room":["Seminar"],"time":"45–90 min","groupSize":"10–25","format":["On campus"],"materials":"Shared text","tech":"None","ai":"Question generation","tpack":["PK","CK"],"field":["Humanities","Law","Philosophy"],"ref":"Tredway (1995)","refUrl":"https://www.ascd.org/el/articles/socratic-seminars-engaging-students-in-intellectual-discourse"},
+{"id":13,"name":"Fishbowl Discussion","desc":"Inner group discusses while outer group observes; roles rotate.","room":["Seminar","ALC"],"time":"30–60 min","groupSize":"10–30","format":["On campus"],"materials":"None","tech":"None","ai":"Scenario prompts","tpack":["PK"],"field":["Any"],"ref":"Brookfield & Preskill (2005)","refUrl":"https://www.wiley.com/en-us/Discussion+as+a+Way+of+Teaching%2C+2nd+Edition-p-9780787973520"},
+{"id":14,"name":"Debate","desc":"Structured argumentation where teams defend assigned positions.","room":["Seminar","Lecture hall"],"time":"45–90 min","groupSize":"10–60","format":["On campus","Blended"],"materials":"Preparation materials","tech":"None","ai":"Argument mapping","tpack":["PK","CK","PCK"],"field":["Law","Social sciences","Humanities"],"ref":"Vo & Morris (2006)","refUrl":"https://doi.org/10.1080/17470210600846265"},
+{"id":15,"name":"Concept Mapping","desc":"Students visually map relationships between concepts.","room":["Any"],"time":"20–45 min","groupSize":"1–6","format":["On campus","Blended","Digital"],"materials":"Paper or software","tech":"Miro, Coggle (optional)","ai":"Concept identification","tpack":["CK","PCK","TCK"],"field":["Any"],"ref":"Novak & Cañas (2008)","refUrl":"https://cmap.ihmc.us/Publications/ResearchPapers/TheoryUnderlyingConceptMaps.pdf"},
+{"id":16,"name":"Role Play","desc":"Students take on assigned roles to explore situations or problems.","room":["Seminar","Lab"],"time":"30–60 min","groupSize":"5–30","format":["On campus","Digital"],"materials":"Role cards","tech":"None or video conferencing","ai":"Scenario and role generation","tpack":["PK","CK"],"field":["Medicine","Social work","Business","Law"],"ref":"Blatner (2009)","refUrl":"https://www.blatner.com/adam/pdntbk/rlplyng.htm"},
+{"id":17,"name":"Simulation","desc":"Students work through a realistic scenario mimicking professional practice.","room":["Lab","ALC"],"time":"60–180 min","groupSize":"5–20","format":["On campus","Digital"],"materials":"Simulation materials or software","tech":"Simulation platform","ai":"Scenario generation, debriefing","tpack":["TK","TCK","TPACK"],"field":["Medicine","Engineering","Teacher education"],"ref":"Issenberg et al. (2005)","refUrl":"https://doi.org/10.1111/j.1365-2929.2004.02106.x"},
+{"id":18,"name":"Project-Based Learning","desc":"Sustained inquiry into a real-world challenge resulting in a public product.","room":["ALC","Lab","Any"],"time":"Multi-week","groupSize":"3–8","format":["On campus","Blended","Digital"],"materials":"Project materials","tech":"Collaboration tools, LMS","ai":"Research support, feedback","tpack":["PK","TK","TPK","TPACK"],"field":["Engineering","Design","Any"],"ref":"Thomas (2000)","refUrl":"https://www.bie.org/objects/cat/research"},
+{"id":19,"name":"Design Thinking Workshop","desc":"Students iterate through empathise, define, ideate, prototype, and test stages.","room":["ALC","Lab"],"time":"90–180 min","groupSize":"5–20","format":["On campus","Blended"],"materials":"Post-its, markers, prototyping materials","tech":"Miro (optional)","ai":"Ideation, user research","tpack":["PK","TK","TPK"],"field":["Design","Business","Engineering","Social work"],"ref":"Brown (2008)","refUrl":"https://hbr.org/2008/06/design-thinking"},
+{"id":20,"name":"Structured Academic Controversy","desc":"Students argue both sides of an issue before seeking consensus.","room":["Seminar","ALC"],"time":"45–90 min","groupSize":"4–20","format":["On campus","Blended"],"materials":"Position cards","tech":"None","ai":"Counter-argument generation","tpack":["PK","CK","PCK"],"field":["Any"],"ref":"Johnson & Johnson (1992)","refUrl":"https://psycnet.apa.org/record/1999-10543-000"},
+{"id":21,"name":"Collaborative Note-Taking","desc":"Students co-create notes in shared documents during or after a lecture.","room":["Any"],"time":"During class","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"Shared document","tech":"Google Docs, Padlet","ai":"Gap identification, summarisation","tpack":["TK","TCK","TPK"],"field":["Any"],"ref":"Luo et al. (2018)","refUrl":"https://doi.org/10.1111/jcal.12239"},
+{"id":22,"name":"Polling / Audience Response","desc":"Real-time questions sent to all students; responses discussed.","room":["Lecture hall","ALC","Any"],"time":"2–10 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"None","tech":"Mentimeter, Kahoot, Poll Everywhere","ai":"Question generation","tpack":["TK","TCK","TPACK"],"field":["Any"],"ref":"Caldwell (2007)","refUrl":"https://doi.org/10.1187/cbe.06-12-0205"},
+{"id":23,"name":"Exit Ticket","desc":"Brief formative task completed before leaving class.","room":["Any"],"time":"2–5 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"Paper or form","tech":"LMS, forms","ai":"Prompt design","tpack":["PK"],"field":["Any"],"ref":"Fisher & Frey (2004)","refUrl":"https://www.pearson.com"},
+{"id":24,"name":"Carousel Brainstorming","desc":"Groups rotate between posters adding ideas to each prompt.","room":["Seminar","ALC"],"time":"20–40 min","groupSize":"10–40","format":["On campus"],"materials":"Posters, markers","tech":"None","ai":"Prompt generation","tpack":["PK"],"field":["Any"],"ref":"Himmele & Himmele (2011)","refUrl":"https://www.ascd.org/books/total-participation-techniques"},
+{"id":25,"name":"Reciprocal Teaching","desc":"Students take turns leading discussion using predict, clarify, question, summarise.","room":["Seminar","ALC"],"time":"30–60 min","groupSize":"3–8","format":["On campus","Blended"],"materials":"Text","tech":"None","ai":"Discussion scaffolding","tpack":["PK","PCK"],"field":["Humanities","Social sciences","Any"],"ref":"Palincsar & Brown (1984)","refUrl":"https://doi.org/10.1207/s1532690xci0102_1"},
+{"id":26,"name":"Inquiry-Based Learning","desc":"Students formulate and investigate their own research questions.","room":["Lab","ALC","Any"],"time":"Multi-session","groupSize":"1–6","format":["On campus","Blended","Digital"],"materials":"Library access, datasets","tech":"LMS, research tools","ai":"Literature search, question framing","tpack":["PK","CK","PCK","TPACK"],"field":["STEM","Social sciences","Humanities"],"ref":"Hmelo-Silver et al. (2007)","refUrl":"https://doi.org/10.1080/00461520701263368"},
+{"id":27,"name":"Learning Cells","desc":"Pairs alternate asking and answering questions on shared material.","room":["Any"],"time":"10–20 min","groupSize":"2","format":["On campus","Blended"],"materials":"Shared text","tech":"None","ai":"Question banks","tpack":["PK","PCK"],"field":["Any"],"ref":"Goldschmid & Goldschmid (1976)","refUrl":"https://doi.org/10.1007/BF01666938"},
+{"id":28,"name":"Collaborative Problem Solving","desc":"Small groups solve discipline-specific problems together.","room":["Any"],"time":"20–60 min","groupSize":"3–6","format":["On campus","Blended","Digital"],"materials":"Problem sets","tech":"Shared whiteboard (optional)","ai":"Hint generation, worked examples","tpack":["PK","CK","PCK","TCK"],"field":["STEM","Medicine","Economics"],"ref":"Heller et al. (1992)","refUrl":"https://doi.org/10.1119/1.16870"},
+{"id":29,"name":"POGIL","desc":"Teams use structured activities to construct understanding of concepts through process-oriented guided inquiry.","room":["Lab","ALC","Seminar"],"time":"45–90 min","groupSize":"3–5","format":["On campus"],"materials":"POGIL activity worksheets","tech":"None","ai":"Activity design support","tpack":["PK","CK","PCK"],"field":["Chemistry","Biology","STEM"],"ref":"Farrell et al. (1999)","refUrl":"https://doi.org/10.1021/ed076p570"},
+{"id":30,"name":"Socratic Questioning","desc":"Instructor uses probing questions to guide students to deeper understanding.","room":["Any"],"time":"Ongoing","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"None","tech":"None","ai":"Question generation","tpack":["PK","CK"],"field":["Any"],"ref":"Paul & Elder (2006)","refUrl":"https://www.criticalthinking.org"},
+{"id":31,"name":"Student-Generated Questions","desc":"Students write questions for upcoming exams or discussions.","room":["Any"],"time":"10–20 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"None","tech":"LMS, forms","ai":"Question quality evaluation","tpack":["PK","CK"],"field":["Any"],"ref":"King (1992)","refUrl":"https://doi.org/10.3102/00028312029002306"},
+{"id":32,"name":"Peer Teaching","desc":"Students prepare and deliver short lessons to classmates.","room":["Seminar","Lecture hall"],"time":"15–45 min","groupSize":"5–40","format":["On campus","Blended"],"materials":"Preparation time","tech":"Slides (optional)","ai":"Content accuracy check","tpack":["CK","PCK"],"field":["Any"],"ref":"Topping (1996)","refUrl":"https://doi.org/10.3102/00346543066003449"},
+{"id":33,"name":"Peer Assessment","desc":"Students evaluate each other's work using shared criteria.","room":["Any"],"time":"20–45 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"Rubric","tech":"LMS peer review tools","ai":"Rubric generation, feedback synthesis","tpack":["PK","TK","TPK"],"field":["Any"],"ref":"Topping (2009)","refUrl":"https://doi.org/10.1080/07370000902776459"},
+{"id":34,"name":"Self-Assessment","desc":"Students reflect on their own learning and performance against criteria.","room":["Any"],"time":"10–20 min","groupSize":"Individual","format":["On campus","Blended","Digital"],"materials":"Rubric or checklist","tech":"LMS","ai":"Reflection prompts, gap analysis","tpack":["PK"],"field":["Any"],"ref":"Boud & Falchikov (1989)","refUrl":"https://doi.org/10.1007/BF00138918"},
+{"id":35,"name":"Portfolio","desc":"Students curate artefacts of their learning over time.","room":["Any"],"time":"Ongoing","groupSize":"Individual","format":["On campus","Blended","Digital"],"materials":"Portfolio platform or folder","tech":"e-Portfolio system, LMS","ai":"Reflection support, curation","tpack":["PK","TK","TPK"],"field":["Teacher education","Arts","Any"],"ref":"Paulson et al. (1991)","refUrl":"https://www.ascd.org/el/articles/portfolios-as-learning-strategies"},
+{"id":36,"name":"Reflective Journaling","desc":"Regular written reflections on learning and experience.","room":["Any"],"time":"10–20 min","groupSize":"Individual","format":["On campus","Blended","Digital"],"materials":"Journal or digital tool","tech":"LMS blog","ai":"Reflection prompts","tpack":["PK"],"field":["Teacher education","Social work","Nursing"],"ref":"Moon (1999)","refUrl":"https://www.routledge.com"},
+{"id":37,"name":"Learning Logs","desc":"Students keep a running record of what they have learned and questions arising.","room":["Any"],"time":"5–10 min","groupSize":"Individual","format":["On campus","Blended","Digital"],"materials":"Notebook or LMS","tech":"LMS","ai":"Prompt generation","tpack":["PK"],"field":["Any"],"ref":"Angelo & Cross (1993)","refUrl":"https://doi.org/10.1002/tl.37219935504"},
+{"id":38,"name":"Structured Controversy with Role Cards","desc":"Debate structure with assigned expert roles and deliberation phase.","room":["Seminar"],"time":"60–90 min","groupSize":"10–24","format":["On campus","Blended"],"materials":"Role cards, readings","tech":"None","ai":"Role preparation","tpack":["PK","CK"],"field":["Law","Ethics","Social sciences"],"ref":"Johnson & Johnson (1992)","refUrl":"https://psycnet.apa.org/record/1999-10543-000"},
+{"id":39,"name":"Muddiest Point with Peer Response","desc":"Students write confusions, then peers respond before instructor clarifies.","room":["Any"],"time":"5–15 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"Paper or LMS","tech":"LMS discussion","ai":"Categorising misconceptions","tpack":["PK","TK","TPK"],"field":["Any"],"ref":"Angelo & Cross (1993)","refUrl":"https://doi.org/10.1002/tl.37219935504"},
+{"id":40,"name":"Minute Thesis","desc":"Students articulate the thesis of their project in under 60 seconds.","room":["Any"],"time":"5–10 min","groupSize":"Any","format":["On campus","Blended"],"materials":"None","tech":"None","ai":"Argument clarity feedback","tpack":["CK","PK"],"field":["Humanities","Social sciences","Any"],"ref":"Bean (2011)","refUrl":"https://www.wiley.com/en-us/Engaging+Ideas-p-9780470532904"},
+{"id":41,"name":"Flipped Small-Group Discussion","desc":"Pre-class video or text; class time for small-group discussion only.","room":["Seminar","ALC"],"time":"45–60 min","groupSize":"10–30","format":["Blended","On campus"],"materials":"Pre-class video or reading","tech":"LMS, video platform","ai":"Video summary, discussion prompts","tpack":["TK","TCK","TPK","TPACK"],"field":["Any"],"ref":"Bishop & Verleger (2013)","refUrl":"https://doi.org/10.18260/1-2--22585"},
+{"id":42,"name":"Interactive Lecture","desc":"Short lecture segments interrupted by questions, polls, or brief pair tasks.","room":["Lecture hall","ALC"],"time":"45–90 min","groupSize":"40–400+","format":["On campus","Blended"],"materials":"None","tech":"Polling tool","ai":"Question generation","tpack":["PK","TK","TCK","TPACK"],"field":["Any"],"ref":"Steinert & Snell (1999)","refUrl":"https://doi.org/10.1080/01421599979310"},
+{"id":43,"name":"STAD","desc":"Heterogeneous teams study together then take individual quizzes; team scores pooled. (Student Teams Achievement Divisions)","room":["Any"],"time":"Multi-session","groupSize":"Any","format":["On campus","Blended"],"materials":"Quiz materials","tech":"LMS","ai":"Quiz generation","tpack":["PK","PCK"],"field":["Any"],"ref":"Slavin (1980)","refUrl":"https://doi.org/10.3102/00346543050002315"},
+{"id":44,"name":"Numbered Heads Together","desc":"Groups discuss a question; one randomly numbered student reports.","room":["Any"],"time":"5–15 min","groupSize":"Any","format":["On campus"],"materials":"None","tech":"Random number tool","ai":"Question design","tpack":["PK"],"field":["Any"],"ref":"Kagan (1992)","refUrl":"https://www.kaganonline.com"},
+{"id":45,"name":"Snowball Discussion","desc":"Ideas generated individually, then shared in pairs, fours, and finally whole group.","room":["Any"],"time":"15–30 min","groupSize":"Any","format":["On campus","Blended"],"materials":"None","tech":"None","ai":"Facilitating synthesis","tpack":["PK"],"field":["Any"],"ref":"Barkley et al. (2014)","refUrl":"https://www.wiley.com/en-us/Collaborative+Learning+Techniques%2C+2nd+Edition-p-9781118761557"},
+{"id":46,"name":"Think-Write-Pair-Share","desc":"Think-Pair-Share with an individual writing step before discussion.","room":["Any"],"time":"10–20 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"Paper or LMS","tech":"None","ai":"Writing prompt generation","tpack":["PK","PCK"],"field":["Any"],"ref":"Lyman (1981)","refUrl":"https://doi.org/10.1177/105456468100600302"},
+{"id":47,"name":"Collaborative Concept Testing","desc":"Groups discuss and vote on best answer to conceptual dilemmas before class review.","room":["Lecture hall","ALC"],"time":"10–20 min","groupSize":"Any","format":["On campus","Blended"],"materials":"Concept questions","tech":"Polling tool","ai":"Dilemma generation","tpack":["TK","TCK","TPACK"],"field":["STEM","Medicine"],"ref":"Mazur (1997)","refUrl":"https://doi.org/10.1119/1.18850"},
+{"id":48,"name":"World Café","desc":"Rotating small-group conversations build collective knowledge across tables.","room":["ALC","Seminar","Large space"],"time":"60–120 min","groupSize":"20–100","format":["On campus"],"materials":"Table paper, markers","tech":"None","ai":"Conversation prompt design","tpack":["PK","PCK"],"field":["Any"],"ref":"Brown & Isaacs (2005)","refUrl":"https://www.bkconnection.com/books/title/The-World-Cafe"},
+{"id":49,"name":"Fishbowl with Rotating Inner Ring","desc":"Structured discussion where outer observers rotate into inner ring.","room":["Seminar","ALC"],"time":"45–75 min","groupSize":"10–30","format":["On campus"],"materials":"None","tech":"None","ai":"Prompt generation","tpack":["PK","CK"],"field":["Any"],"ref":"Brookfield & Preskill (2005)","refUrl":"https://www.wiley.com/en-us/Discussion+as+a+Way+of+Teaching%2C+2nd+Edition-p-9780787973520"},
+{"id":50,"name":"Problem Solving in Context","desc":"Problems embedded in authentic professional scenarios.","room":["Seminar","Lab","ALC"],"time":"30–60 min","groupSize":"3–8","format":["On campus","Blended"],"materials":"Scenario cards","tech":"LMS","ai":"Scenario generation","tpack":["PK","CK","PCK"],"field":["Engineering","Medicine","Law"],"ref":"Heller et al. (1992)","refUrl":"https://doi.org/10.1119/1.16870"},
+{"id":51,"name":"Analogical Reasoning Tasks","desc":"Students map structural relationships between a known domain and new content.","room":["Any"],"time":"15–30 min","groupSize":"1–4","format":["On campus","Blended","Digital"],"materials":"Analogy templates","tech":"None","ai":"Analogy generation","tpack":["CK","PCK"],"field":["STEM","Humanities","Any"],"ref":"Gentner (1983)","refUrl":"https://doi.org/10.1207/s15516709cog0702_1"},
+{"id":52,"name":"Worked Example Analysis","desc":"Students study expert solutions and identify principles used.","room":["Any"],"time":"20–40 min","groupSize":"1–4","format":["On campus","Blended","Digital"],"materials":"Worked examples","tech":"None","ai":"Example generation, error injection","tpack":["CK","PCK","TK"],"field":["STEM","Accounting","Law"],"ref":"Sweller (1988)","refUrl":"https://doi.org/10.1207/s15516709cog1202_2"},
+{"id":53,"name":"Interleaved Practice","desc":"Mixed problem types across topics rather than blocked practice.","room":["Any"],"time":"20–45 min","groupSize":"Individual","format":["On campus","Blended","Digital"],"materials":"Mixed problem sets","tech":"LMS or paper","ai":"Problem set generation","tpack":["CK","PK","PCK"],"field":["STEM","Medicine","Any"],"ref":"Roediger & Karpicke (2006)","refUrl":"https://doi.org/10.1111/j.1467-9280.2006.01705.x"},
+{"id":54,"name":"Retrieval Practice / Low-Stakes Quizzing","desc":"Frequent short quizzes to strengthen memory retrieval.","room":["Any"],"time":"5–15 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"Quiz cards or forms","tech":"LMS, Kahoot, Anki","ai":"Quiz generation","tpack":["TK","TCK","TPACK"],"field":["Any"],"ref":"Roediger & Karpicke (2006)","refUrl":"https://doi.org/10.1111/j.1467-9280.2006.01705.x"},
+{"id":55,"name":"Spaced Repetition System","desc":"Flashcard-style review scheduled across time to exploit the spacing effect.","room":["Any"],"time":"5–20 min","groupSize":"Individual","format":["Digital","Blended"],"materials":"Flashcard platform","tech":"Anki, Quizlet","ai":"Card generation","tpack":["TK","TCK","TPACK"],"field":["Medicine","Language","Any"],"ref":"Cepeda et al. (2006)","refUrl":"https://doi.org/10.1037/0033-2909.132.3.354"},
+{"id":56,"name":"Elaborative Interrogation","desc":"Students generate explanations for why facts are true.","room":["Any"],"time":"10–20 min","groupSize":"Individual or pair","format":["On campus","Blended","Digital"],"materials":"Facts or propositions","tech":"None","ai":"Prompt generation","tpack":["CK","PK"],"field":["Any"],"ref":"Dunlosky et al. (2013)","refUrl":"https://doi.org/10.1177/1529100612453266"},
+{"id":57,"name":"Anticipation Guide","desc":"Students confirm or disconfirm beliefs before and after instruction.","room":["Any"],"time":"10–15 min","groupSize":"Individual","format":["On campus","Blended","Digital"],"materials":"Guide sheet","tech":"LMS","ai":"Statement generation","tpack":["PK","CK"],"field":["Any"],"ref":"Duffelmeyer (1994)","refUrl":"https://doi.org/10.2307/40013014"},
+{"id":58,"name":"KWL Chart","desc":"Students track what they Know, Want to know, and have Learned.","room":["Any"],"time":"5–15 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"KWL template","tech":"LMS or paper","ai":"Question generation from W column","tpack":["PK"],"field":["Any"],"ref":"Ogle (1986)","refUrl":"https://doi.org/10.1598/RT.39.6.11"},
+{"id":59,"name":"Cognitive Apprenticeship","desc":"Expert modelling with scaffolded coaching then fading support.","room":["Lab","Clinic","Studio"],"time":"Full session+","groupSize":"1–10","format":["On campus"],"materials":"Authentic tasks","tech":"None","ai":"Scaffolded prompts","tpack":["CK","PK","PCK"],"field":["Medicine","Teacher education","Vocational"],"ref":"Collins et al. (1989)","refUrl":"https://doi.org/10.3102/0013189X018001010"},
+{"id":60,"name":"Constructive Alignment Workshop","desc":"Students co-analyse curriculum alignment between ILOs, activities, and assessment.","room":["Seminar","ALC"],"time":"45–90 min","groupSize":"10–30","format":["On campus","Blended"],"materials":"Curriculum documents","tech":"Shared documents","ai":"Gap analysis","tpack":["PK","PCK"],"field":["Teacher education","Any"],"ref":"Biggs & Tang (2011)","refUrl":"https://www.mheducation.co.uk/teaching-for-quality-learning-at-university-9780335242757-emea"},
+{"id":61,"name":"Epistemic Games","desc":"Role-based inquiry where students adopt professional epistemic practices.","room":["ALC","Lab"],"time":"Multi-session","groupSize":"5–15","format":["On campus","Digital"],"materials":"Game materials or platform","tech":"LMS, simulation","ai":"Professional scenario design","tpack":["CK","PK","PCK","TPACK"],"field":["STEM","Social sciences"],"ref":"Shaffer (2006)","refUrl":"https://www.palgrave.com"},
+{"id":62,"name":"Studio Critique","desc":"Student work displayed and discussed collectively in structured critique.","room":["Studio","Lab","ALC"],"time":"45–90 min","groupSize":"5–25","format":["On campus","Digital"],"materials":"Completed work","tech":"Display tools, projector","ai":"Critique scaffold","tpack":["CK","PK","PCK"],"field":["Arts","Architecture","Design"],"ref":"Schön (1987)","refUrl":"https://www.wiley.com/en-us/Educating+the+Reflective+Practitioner-p-9781555420512"},
+{"id":63,"name":"Collaborative Writing","desc":"Groups co-author a text using shared document tools.","room":["Any"],"time":"45–120 min","groupSize":"2–6","format":["On campus","Blended","Digital"],"materials":"None","tech":"Google Docs, LMS","ai":"Drafting support, revision feedback","tpack":["TK","TCK","TPACK"],"field":["Humanities","Social sciences","Any"],"ref":"Storch (2011)","refUrl":"https://doi.org/10.1016/j.system.2011.05.006"},
+{"id":64,"name":"Peer Writing Groups","desc":"Students meet regularly to give and receive feedback on writing in progress.","room":["Seminar","ALC"],"time":"45–60 min","groupSize":"3–6","format":["On campus","Blended","Digital"],"materials":"Draft texts","tech":"LMS or Google Docs","ai":"Feedback framing, style suggestions","tpack":["PK","TK","TPK"],"field":["Humanities","Social sciences","Any"],"ref":"Elbow (1973)","refUrl":"https://global.oup.com/academic/product/writing-without-teachers"},
+{"id":65,"name":"Collaborative Annotation","desc":"Students annotate shared texts with comments and questions.","room":["Any"],"time":"20–40 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"Annotated text or platform","tech":"Hypothesis, Perusall","ai":"Discussion prompt generation","tpack":["TK","TCK","TPACK"],"field":["Humanities","Law","Social sciences"],"ref":"Lackey & Lackey (2019)","refUrl":"https://doi.org/10.1177/1469787417739752"},
+{"id":66,"name":"Data Literacy Exercise","desc":"Students work with real datasets to draw conclusions and critique methods.","room":["Lab","ALC","Computer room"],"time":"60–120 min","groupSize":"1–4","format":["On campus","Blended","Digital"],"materials":"Dataset","tech":"Excel, R, SPSS, Python","ai":"Data interpretation support","tpack":["TK","CK","TCK","TPACK"],"field":["Social sciences","STEM","Economics"],"ref":"Gould (2010)","refUrl":"https://doi.org/10.5070/T541000029"},
+{"id":67,"name":"Lab Report Peer Review","desc":"Students critically evaluate each other's lab reports before submission.","room":["Lab","Any"],"time":"30–60 min","groupSize":"2–4","format":["On campus","Blended"],"materials":"Lab report rubric","tech":"LMS","ai":"Feedback generation","tpack":["CK","PK","PCK"],"field":["STEM","Medicine"],"ref":"Topping (2009)","refUrl":"https://doi.org/10.1080/07370000902776459"},
+{"id":68,"name":"Error Analysis","desc":"Students analyse incorrect solutions to identify and correct reasoning errors.","room":["Any"],"time":"20–40 min","groupSize":"1–4","format":["On campus","Blended","Digital"],"materials":"Worked error examples","tech":"None","ai":"Error injection for examples","tpack":["CK","PCK"],"field":["STEM","Accounting","Language"],"ref":"Borasi (1994)","refUrl":"https://www.jstor.org/stable/40248059"},
+{"id":69,"name":"Concept Inventory Testing","desc":"Validated diagnostic instruments reveal persistent conceptual misconceptions.","room":["Lecture hall","Any"],"time":"15–30 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"Inventory instrument","tech":"LMS","ai":"Follow-up explanation","tpack":["CK","PCK","TK"],"field":["STEM","Economics"],"ref":"Hestenes et al. (1992)","refUrl":"https://doi.org/10.1119/1.16835"},
+{"id":70,"name":"Peer Explanation","desc":"A student explains a concept to a partner who provides real-time clarification requests.","room":["Any"],"time":"10–15 min","groupSize":"2","format":["On campus","Blended","Digital"],"materials":"None","tech":"None","ai":"Content accuracy check","tpack":["CK","PK","PCK"],"field":["Any"],"ref":"Chi et al. (1989)","refUrl":"https://doi.org/10.1207/s15516709cog1303_1"},
+{"id":71,"name":"Microteaching","desc":"Students teach a short lesson to peers, filmed for reflection and feedback.","room":["Seminar","Lab"],"time":"10–20 min","groupSize":"5–15","format":["On campus","Digital"],"materials":"None","tech":"Recording device","ai":"Feedback analysis","tpack":["CK","PK","PCK","TK","TPACK"],"field":["Teacher education"],"ref":"Allen (1966)","refUrl":"https://eric.ed.gov/?id=ED019224"},
+{"id":72,"name":"Demonstration with Student Prediction","desc":"Teacher demonstrates a procedure; students predict outcome before each step.","room":["Lab","Lecture hall","ALC"],"time":"20–45 min","groupSize":"Any","format":["On campus","Digital"],"materials":"Demo equipment","tech":"Projector","ai":"Prediction prompt generation","tpack":["CK","PK","PCK"],"field":["STEM","Medicine"],"ref":"Crouch et al. (2004)","refUrl":"https://doi.org/10.1119/1.1707018"},
+{"id":73,"name":"Guided Discovery Learning","desc":"Teacher scaffolds exploration so students derive principles themselves.","room":["Lab","ALC","Seminar"],"time":"45–90 min","groupSize":"1–6","format":["On campus","Blended"],"materials":"Materials or data","tech":"Lab equipment or software","ai":"Hint scaffolding","tpack":["CK","PK","PCK","TCK"],"field":["STEM","Social sciences"],"ref":"Bruner (1961)","refUrl":"https://doi.org/10.17763/haer.31.1.g3634020020t672x"},
+{"id":74,"name":"Problem Posing","desc":"Students formulate their own problems from a situation, building analytical literacy.","room":["Any"],"time":"20–40 min","groupSize":"1–4","format":["On campus","Blended","Digital"],"materials":"Situational prompts","tech":"None","ai":"Situation generation","tpack":["CK","PK"],"field":["Mathematics","STEM","Education"],"ref":"Silver (1994)","refUrl":"https://doi.org/10.1016/0732-3123(94)90029-9"},
+{"id":75,"name":"Two-Stage Examination","desc":"Individual exam followed immediately by collaborative group version of same exam.","room":["Any"],"time":"60–90 min","groupSize":"3–6","format":["On campus"],"materials":"Exam booklets","tech":"None","ai":"Question design","tpack":["PK","PCK"],"field":["Any"],"ref":"Gilley & Clarkston (2014)","refUrl":"https://doi.org/10.2505/4/jcst14_043_04_0041"},
+{"id":76,"name":"Structured Reflection Protocol","desc":"Students use a structured framework (e.g., Gibbs cycle) for written reflection.","room":["Any"],"time":"20–40 min","groupSize":"Individual","format":["On campus","Blended","Digital"],"materials":"Reflection template","tech":"LMS","ai":"Prompt generation, feedback","tpack":["PK"],"field":["Nursing","Teacher education","Social work"],"ref":"Gibbs (1988)","refUrl":"https://thoughtsmostlyaboutlearning.files.wordpress.com/2015/12/learning-by-doing-graham-gibbs.pdf"},
+{"id":77,"name":"Service Learning","desc":"Students apply discipline knowledge in real community settings with reflection.","room":["Community site"],"time":"Multi-week","groupSize":"1–10","format":["On campus","Blended"],"materials":"Community partner agreement","tech":"LMS for reflection","ai":"Reflection prompts","tpack":["CK","PK","PCK"],"field":["Social work","Education","Medicine","Any"],"ref":"Eyler & Giles (1999)","refUrl":"https://www.wiley.com/en-us/Where%27s+the+Learning+in+Service+Learning%3F-p-9780787940515"},
+{"id":78,"name":"Experiential Learning Cycle","desc":"Activities structured around Kolb's concrete experience, reflection, conceptualisation, experimentation.","room":["Lab","Studio","Field"],"time":"Multi-session","groupSize":"Any","format":["On campus","Blended"],"materials":"Experience-based tasks","tech":"None","ai":"Reflection prompts","tpack":["PK","PCK"],"field":["Any"],"ref":"Kolb (1984)","refUrl":"https://www.pearson.com/en-us/subject-catalog/p/experiential-learning/P200000005432"},
+{"id":79,"name":"Authentic Assessment Task","desc":"Students produce real-world artefacts assessed by professional criteria.","room":["Any"],"time":"Multi-week","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"Task brief","tech":"LMS, relevant professional tools","ai":"Artefact review, feedback","tpack":["CK","PK","PCK","TCK"],"field":["Any"],"ref":"Wiggins (1993)","refUrl":"https://www.wiley.com"},
+{"id":80,"name":"Online Discussion Forum","desc":"Asynchronous text-based discussion in LMS forums.","room":["Digital"],"time":"Asynchronous","groupSize":"Any","format":["Digital","Blended"],"materials":"None","tech":"LMS discussion board","ai":"Discussion prompt design, moderation","tpack":["TK","TCK","TPK","TPACK"],"field":["Any"],"ref":"Garrison et al. (2000)","refUrl":"https://doi.org/10.1016/S1096-7516(00)00016-6"},
+{"id":81,"name":"Video-Based Discussion","desc":"Students watch a short video clip then discuss implications or critique.","room":["Any"],"time":"20–45 min","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"Video clip","tech":"LMS, YouTube, projector","ai":"Discussion prompt generation","tpack":["TK","TCK","TPACK"],"field":["Any"],"ref":"Brame (2016)","refUrl":"https://doi.org/10.1187/cbe.16-03-0125"},
+{"id":82,"name":"Student-Created Videos","desc":"Students produce short explanatory or creative videos as a learning product.","room":["Any"],"time":"Multi-week","groupSize":"1–4","format":["Blended","Digital"],"materials":"Recording device","tech":"Video editing software, LMS","ai":"Script development, editing feedback","tpack":["TK","TCK","TPACK"],"field":["Any"],"ref":"Hung (2015)","refUrl":"https://doi.org/10.1016/j.compedu.2015.04.003"},
+{"id":83,"name":"Digital Storytelling","desc":"Students create multimedia narratives combining text, image, audio, and video.","room":["Any"],"time":"Multi-week","groupSize":"1–3","format":["Blended","Digital"],"materials":"None","tech":"iMovie, Canva, Adobe Express","ai":"Story structure, narration","tpack":["TK","TCK","TPACK"],"field":["Humanities","Social work","Education","Any"],"ref":"Robin (2008)","refUrl":"https://www.j-ets.net/ETS/journals/11_1/7.pdf"},
+{"id":84,"name":"Podcast Production","desc":"Students record and publish podcast episodes on course topics.","room":["Any"],"time":"Multi-week","groupSize":"1–3","format":["Blended","Digital"],"materials":"Microphone","tech":"Audacity, Spotify for Podcasters","ai":"Script, show notes, transcription","tpack":["TK","TCK","TPACK"],"field":["Any"],"ref":"Heilesen (2010)","refUrl":"https://doi.org/10.1016/j.compedu.2009.09.002"},
+{"id":85,"name":"Gamification of Learning","desc":"Points, badges, and leaderboards added to course activities to increase engagement.","room":["Any"],"time":"Ongoing","groupSize":"Any","format":["On campus","Blended","Digital"],"materials":"None","tech":"LMS, gamification plugin","ai":"Badge design, challenge generation","tpack":["TK","TCK","TPACK"],"field":["Any"],"ref":"Dicheva et al. (2015)","refUrl":"https://www.j-ets.net/ETS/journals/18_3/3.pdf"},
+{"id":86,"name":"Serious Games","desc":"Purpose-designed games used to achieve specific learning outcomes.","room":["Computer room","ALC","Any"],"time":"45–180 min","groupSize":"Any","format":["On campus","Digital"],"materials":"Game software","tech":"Game platform","ai":"Adaptive challenge","tpack":["TK","TCK","TPACK"],"field":["Medicine","Business","Economics"],"ref":"Shaffer (2006) / Gee (2003)","refUrl":"https://www.palgrave.com"},
+{"id":87,"name":"Virtual Lab","desc":"Students conduct experiments in a simulated digital laboratory.","room":["Digital"],"time":"45–90 min","groupSize":"1–4","format":["Digital","Blended"],"materials":"None","tech":"Labster, PhET, Visible Body","ai":"Guided inquiry prompts","tpack":["TK","CK","TCK","TPACK"],"field":["STEM","Medicine"],"ref":"Mikropoulos & Natsis (2011)","refUrl":"https://doi.org/10.1016/j.compedu.2011.01.004"},
+{"id":88,"name":"Augmented Reality Activity","desc":"Students use AR overlays to explore physical spaces or objects.","room":["Lab","Field","Any"],"time":"30–60 min","groupSize":"1–6","format":["On campus","Digital"],"materials":"AR-capable device","tech":"AR app","ai":"Scenario generation","tpack":["TK","TCK","TPACK"],"field":["Medicine","Architecture","Science"],"ref":"Bower et al. (2014)","refUrl":"https://doi.org/10.1016/j.compedu.2014.02.011"},
+{"id":89,"name":"Collaborative Mind Mapping","desc":"Groups jointly build a mind map to organise and connect ideas.","room":["Any"],"time":"15–30 min","groupSize":"2–10","format":["On campus","Blended","Digital"],"materials":"None","tech":"Miro, MindMeister, paper","ai":"Branch suggestion","tpack":["CK","TK","TCK"],"field":["Any"],"ref":"Novak & Cañas (2008)","refUrl":"https://cmap.ihmc.us/Publications/ResearchPapers/TheoryUnderlyingConceptMaps.pdf"},
+{"id":90,"name":"Improvisational Theatre Techniques","desc":"Drama exercises used to build communication, empathy, and spontaneity.","room":["Studio","Seminar","ALC"],"time":"30–60 min","groupSize":"10–30","format":["On campus"],"materials":"None","tech":"None","ai":"Scenario prompts","tpack":["PK","CK"],"field":["Teacher education","Social work","Medicine","Humanities"],"ref":"Spolin (1963)","refUrl":"https://nupress.northwestern.edu"},
+{"id":91,"name":"Structured Problem-Solving Pairs","desc":"One student acts as problem-solver, the other as coach; roles alternate.","room":["Any"],"time":"20–40 min","groupSize":"2","format":["On campus","Blended"],"materials":"Problem set","tech":"None","ai":"Hint generation","tpack":["CK","PK","PCK"],"field":["STEM","Accounting","Any"],"ref":"Barkley et al. (2014)","refUrl":"https://www.wiley.com/en-us/Collaborative+Learning+Techniques%2C+2nd+Edition-p-9781118761557"},
+{"id":92,"name":"Expert Panel","desc":"Students act as expert panel members and field questions from peers.","room":["Seminar","Lecture hall"],"time":"30–60 min","groupSize":"10–60","format":["On campus","Blended"],"materials":"Preparation materials","tech":"Microphone (large group)","ai":"Question preparation","tpack":["CK","PK","PCK"],"field":["Any"],"ref":"Davis (1993)","refUrl":"https://www.wiley.com"},
+{"id":93,"name":"Research Symposium","desc":"Students present research-in-progress at an organised peer conference.","room":["Lecture hall","ALC","Multiple rooms"],"time":"Half or full day","groupSize":"20–200","format":["On campus","Blended"],"materials":"Poster or slides","tech":"Projector, poster boards","ai":"Abstract improvement, poster design","tpack":["CK","PK","PCK","TK"],"field":["Any"],"ref":"Kinkead (2003)","refUrl":"https://www.wiley.com"},
+{"id":94,"name":"Citizen Science Project","desc":"Students contribute real data to an ongoing community or scientific project.","room":["Field","Lab","Digital"],"time":"Multi-week","groupSize":"1–10","format":["On campus","Blended","Digital"],"materials":"Data collection tools","tech":"Citizen science platform","ai":"Data interpretation","tpack":["CK","TK","TCK","TPACK"],"field":["Biology","Environmental science","Social sciences"],"ref":"Bonney et al. (2009)","refUrl":"https://doi.org/10.1525/bio.2009.59.11.7"},
+{"id":95,"name":"Living Lab","desc":"Students engage with real institutional or community problems as design researchers.","room":["Field","ALC","Community site"],"time":"Multi-week","groupSize":"3–10","format":["On campus","Blended"],"materials":"Project brief","tech":"Collaboration tools","ai":"Problem framing, synthesis","tpack":["CK","PK","PCK","TK","TPACK"],"field":["Engineering","Social sciences","Urban planning"],"ref":"Almirall et al. (2012)","refUrl":"https://doi.org/10.1016/j.techfore.2012.04.003"},
+{"id":96,"name":"Think-Aloud Protocol","desc":"Students verbalise their reasoning while solving a problem; peers or teacher observe.","room":["Lab","Seminar"],"time":"15–30 min","groupSize":"1–4","format":["On campus","Digital"],"materials":"Problem","tech":"Recording (optional)","ai":"Metacognitive scaffolding","tpack":["CK","PK","PCK"],"field":["STEM","Teacher education","Medicine"],"ref":"Ericsson & Simon (1993)","refUrl":"https://mitpress.mit.edu"},
+{"id":97,"name":"Scenario Planning","desc":"Groups develop plausible future scenarios and analyse their implications.","room":["Seminar","ALC"],"time":"60–120 min","groupSize":"4–8","format":["On campus","Blended"],"materials":"Scenario template","tech":"Shared documents","ai":"Trend analysis, scenario drafting","tpack":["CK","PK","PCK","TK"],"field":["Business","Economics","Social sciences","Engineering"],"ref":"Schwartz (1991)","refUrl":"https://www.penguinrandomhouse.com"},
+{"id":98,"name":"Ethics Case Analysis","desc":"Students apply ethical frameworks to analyse real or constructed professional dilemmas.","room":["Seminar","ALC","Any"],"time":"45–90 min","groupSize":"3–8","format":["On campus","Blended","Digital"],"materials":"Case text","tech":"LMS (optional)","ai":"Counter-argument generation, framework mapping","tpack":["CK","PK","PCK"],"field":["Medicine","Law","Engineering","Social work","Any"],"ref":"Rest (1986)","refUrl":"https://www.pearson.com"},
+{"id":99,"name":"Interdisciplinary Synthesis Task","desc":"Students connect concepts from two or more disciplines to solve an integrative problem.","room":["Any"],"time":"60–120 min","groupSize":"3–8","format":["On campus","Blended","Digital"],"materials":"Cross-disciplinary case","tech":"LMS","ai":"Cross-domain connection support","tpack":["CK","PCK","TPACK"],"field":["Any"],"ref":"Newell (1994)","refUrl":"https://our.oakland.edu/handle/10323/7867"},
+{"id":100,"name":"AI-Augmented Seminar","desc":"Students use AI tools during structured seminar to generate, critique, and refine ideas.","room":["Seminar","ALC","Digital"],"time":"45–90 min","groupSize":"10–30","format":["On campus","Blended","Digital"],"materials":"None","tech":"AI tools (ChatGPT, Claude etc.), LMS","ai":"Co-creation, critique, Socratic dialogue, revision","tpack":["TK","TCK","TPK","TPACK"],"field":["Any"],"ref":"Mollick & Mollick (2023)","refUrl":"https://www.oneusefulthing.org"}
+];
+
+const tpackDefs = {
+  "CK":    "Content Knowledge — deep subject-matter expertise",
+  "PK":    "Pedagogical Knowledge — teaching, learning and assessment methods",
+  "TK":    "Technological Knowledge — ability to use and adapt technology",
+  "PCK":   "Pedagogical Content Knowledge — teaching strategies for specific content",
+  "TCK":   "Technological Content Knowledge — technology reshaping content representation",
+  "TPK":   "Technological Pedagogical Knowledge — technology enabling new teaching approaches",
+  "TPACK": "Technological Pedagogical Content Knowledge — full integration of all three"
+};
+
+const allTpack = ["CK","PK","TK","PCK","TCK","TPK","TPACK"];
+const allRooms = [...new Set(strategies.flatMap(s=>s.room))].filter(r=>r!=='Any').sort();
+const allFormats = [...new Set(strategies.flatMap(s=>s.format))].sort();
+const allFields = [...new Set(strategies.flatMap(s=>s.field))].filter(f=>f!=='Any').sort();
+const allTimes = ["2–15 min","20–60 min","60–120 min","90–180 min","Full session","Multi-session","Multi-week","Ongoing","Asynchronous"];
+const allGroupSizes = ["Individual","2","3–6","5–20","10–40","20–100","40–200","100–400+","Any"];
+
+let filters = {search:"",room:"",format:"",time:"",groupSize:"",field:"",tpack:[]};
+let sortKey = "name";
+let sortDir = 1;
+
+function matchTime(s, tf) {
+  if(!tf) return true;
+  const t=s.time;
+  if(tf==="2–15 min") return /^[0-9]/.test(t)&&(t.includes("2–5")||t.includes("5–10")||t.includes("5–15")||t.includes("10–15")||t.includes("2–10")||t.includes("10–20")||t.includes("5–20"));
+  if(tf==="20–60 min") return t.includes("20–")||t.includes("30–")||t.includes("45–")||t.includes("15–30")||t.includes("20–45")||t.includes("30–60");
+  if(tf==="60–120 min") return t.includes("60–")||t.includes("45–90")||t.includes("45–75")||t.includes("60–120")||t.includes("45–120");
+  if(tf==="90–180 min") return t.includes("90–")||t.includes("60–180")||t.includes("90–180");
+  if(tf==="Full session") return t==="Full session"||t==="Full session+";
+  if(tf==="Multi-session") return t==="Multi-session";
+  if(tf==="Multi-week") return t==="Multi-week";
+  if(tf==="Ongoing") return t==="Ongoing";
+  if(tf==="Asynchronous") return t==="Asynchronous";
+  return true;
+}
+function matchGroupSize(s, gf) {
+  if(!gf) return true;
+  const g=s.groupSize;
+  if(gf==="Individual") return g==="Individual"||g==="Individual or pair";
+  if(gf==="2") return g==="2"||g==="Individual or pair";
+  if(gf==="3–6") return ["3–5","3–6","3–8","1–4","1–6","1–3","2","2–4","2–6","2–10","1–10"].includes(g);
+  if(gf==="5–20") return ["5–15","5–20","5–25","5–30","5–40","10–15","10–20","4–8","3–8","4–20","3–5","3–10","1–6","3–6"].includes(g);
+  if(gf==="10–40") return ["10–25","10–30","10–40","15–40","20–30","10–60","20–40","10–24"].includes(g);
+  if(gf==="20–100") return ["20–60","20–100","20–200","30–60","40–60"].includes(g);
+  if(gf==="40–200") return ["40–400+","40–60","20–200","50–200","40–200"].includes(g);
+  if(gf==="100–400+") return g==="Any"||g.includes("400+");
+  if(gf==="Any") return g==="Any";
+  return true;
+}
+
+function getFiltered() {
+  return strategies.filter(s=>{
+    if(filters.search){const q=filters.search.toLowerCase();if(!s.name.toLowerCase().includes(q)&&!s.desc.toLowerCase().includes(q)&&!s.field.join().toLowerCase().includes(q))return false;}
+    if(filters.room&&!s.room.includes(filters.room)&&!s.room.includes("Any"))return false;
+    if(filters.format&&!s.format.includes(filters.format))return false;
+    if(filters.time&&!matchTime(s,filters.time))return false;
+    if(filters.groupSize&&!matchGroupSize(s,filters.groupSize))return false;
+    if(filters.field&&!s.field.includes(filters.field)&&!s.field.includes("Any"))return false;
+    if(filters.tpack.length>0&&!filters.tpack.some(t=>s.tpack.includes(t)))return false;
+    return true;
+  }).sort((a,b)=>{
+    let av=a[sortKey],bv=b[sortKey];
+    if(typeof av==='string')return sortDir*av.localeCompare(bv);
+    return sortDir*(av-bv);
+  });
+}
+
+function renderFilters() {
+  const defs=[
+    {key:'room',label:'Room type',opts:[''].concat(allRooms)},
+    {key:'format',label:'Format',opts:[''].concat(allFormats)},
+    {key:'time',label:'Time required',opts:[''].concat(allTimes)},
+    {key:'groupSize',label:'Group size',opts:[''].concat(allGroupSizes)},
+    {key:'field',label:'Field of study',opts:[''].concat(allFields)},
+  ];
+  document.getElementById('filter-grid').innerHTML=defs.map(d=>`<div class="filter-group"><label class="filter-label">${d.label}</label><select onchange="setFilter('${d.key}',this.value)"><option value="">All</option>${d.opts.filter(Boolean).map(o=>`<option value="${o}"${filters[d.key]===o?' selected':''}>${o}</option>`).join('')}</select></div>`).join('');
+}
+
+function renderTpack() {
+  document.getElementById('tpack-row').innerHTML=allTpack.map(t=>`<button class="tpack-btn${filters.tpack.includes(t)?' active':''}" onclick="toggleTpack('${t}')" onmouseenter="showTpackDef('${t}')" onmouseleave="clearTpackDef()">${t}</button>`).join('');
+}
+
+function showTpackDef(t){document.getElementById('tpack-legend').textContent=tpackDefs[t];}
+function clearTpackDef(){
+  if(filters.tpack.length>0)document.getElementById('tpack-legend').textContent='Active: '+filters.tpack.map(t=>tpackDefs[t]).join(' · ');
+  else document.getElementById('tpack-legend').textContent='Hover a button to see the knowledge domain definition.';
+}
+
+function renderTable() {
+  const data=getFiltered();
+  document.getElementById('count-badge').textContent=data.length;
+  document.getElementById('results-label').textContent=`of ${strategies.length} strategies shown`;
+  const cols=[
+    {key:'name',label:'Strategy'},
+    {key:'room',label:'Room'},
+    {key:'time',label:'Time'},
+    {key:'groupSize',label:'Group size'},
+    {key:'format',label:'Format'},
+    {key:'materials',label:'Materials'},
+    {key:'tech',label:'Technology'},
+    {key:'ai',label:'AI use'},
+    {key:'tpack',label:'TPACK'},
+    {key:'field',label:'Field'},
+    {key:'ref',label:'Reference'},
+  ];
+  document.getElementById('table-head').innerHTML=`<tr>${cols.map(c=>`<th onclick="setSort('${c.key}')" class="${sortKey===c.key?'sorted':''}">${c.label}<span class="sort-arrow">${sortKey===c.key?(sortDir===1?'↑':'↓'):'↕'}</span></th>`).join('')}</tr>`;
+  if(data.length===0){document.getElementById('table-body').innerHTML=`<tr><td colspan="${cols.length}" class="no-results">No strategies match the current filters — try removing one or more filters.</td></tr>`;return;}
+  document.getElementById('table-body').innerHTML=data.map(s=>`<tr>
+    <td class="name-cell"><div class="strategy-name">${s.name}</div><div class="strategy-desc">${s.desc}</div></td>
+    <td>${s.room.map(r=>`<span class="tag tag-room">${r}</span>`).join('')}</td>
+    <td><span class="tag tag-time">${s.time}</span></td>
+    <td>${s.groupSize}</td>
+    <td>${s.format.map(f=>`<span class="tag tag-format">${f}</span>`).join('')}</td>
+    <td class="muted-cell">${s.materials}</td>
+    <td class="muted-cell">${s.tech}</td>
+    <td><span class="tag tag-ai">${s.ai}</span></td>
+    <td>${s.tpack.map(t=>`<span class="tag tag-tpack" title="${tpackDefs[t]}">${t}</span>`).join('')}</td>
+    <td>${s.field.map(f=>`<span class="tag tag-field">${f}</span>`).join('')}</td>
+    <td><a href="${s.refUrl}" target="_blank" rel="noopener" class="ref-link">${s.ref}</a></td>
+  </tr>`).join('');
+}
+
+function setFilter(key,val){filters[key]=val;renderTable();}
+function toggleTpack(t){
+  filters.tpack=filters.tpack.includes(t)?filters.tpack.filter(x=>x!==t):[...filters.tpack,t];
+  renderTpack();clearTpackDef();renderTable();
+}
+function setSort(key){
+  if(sortKey===key)sortDir=-sortDir;else{sortKey=key;sortDir=1;}
+  renderTable();
+}
+function resetFilters(){
+  filters={search:"",room:"",format:"",time:"",groupSize:"",field:"",tpack:[]};
+  document.getElementById('search').value='';
+  renderFilters();renderTpack();clearTpackDef();renderTable();
+}
+document.getElementById('search').addEventListener('input',e=>{filters.search=e.target.value;renderTable();});
+
+renderFilters();renderTpack();renderTable();
+</script>
+</body>
+</html>
